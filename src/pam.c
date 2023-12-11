@@ -359,6 +359,7 @@ static bool pam_check_passwd(struct pam_auth_request *request)
 	pam_handle_t *hpam;
 	char raddr[PGADDR_BUF];
 	int rc;
+	const char *dbname;
 
 	struct pam_conv pam_conv = {
 		.conv = pam_conversation,
@@ -368,6 +369,19 @@ static bool pam_check_passwd(struct pam_auth_request *request)
 	rc = pam_start(PGBOUNCER_PAM_SERVICE, request->username, &pam_conv, &hpam);
 	if (rc != PAM_SUCCESS) {
 		log_warning("pam_start() failed: %s", pam_strerror(NULL, rc));
+		return false;
+	}
+
+	
+	/* Pull dbname user is authing to out of the request socket struct */
+	dbname = request->client->pool->db->dbname;
+
+	/* CityGeo custom mod; use set_pam_item to jam the dbname into PAM_TTY, an unused
+	variable we can pass along to our pam auth script.*/
+	rc = pam_set_item(hpam, PAM_TTY, dbname);
+	if (rc != PAM_SUCCESS) {
+		log_warning("pam_set_item(): can't set PAM_TTY to '%s'", dbname);
+		pam_end(hpam, rc);
 		return false;
 	}
 
