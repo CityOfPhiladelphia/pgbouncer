@@ -373,8 +373,11 @@ static bool pam_check_passwd(struct pam_auth_request *request)
 	}
 
 	
-	/* Pull dbname user is authing to out of the request socket struct */
-	dbname = request->client->pool->db->dbname;
+	/* Pull dbname user is authing to out of the request socket struct
+         * Note: it is not 'request->client->pool->db->dbname', that's the dbname
+         * of the database we're being routed to. We want to know what database
+         * the client is sending to us, which is this: */
+        dbname = request->client->pool->db->name;
 
 	/* CityGeo custom mod; use set_pam_item to jam the dbname into PAM_TTY, an unused
 	variable we can pass along to our pam auth script.*/
